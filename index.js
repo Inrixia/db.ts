@@ -2,7 +2,6 @@ const fs = require('fs')
 const crypto = require('crypto')
 
 const dbDir = `./db/`
-if (!fs.existsSync('dbDir')) fs.mkdirSync(dbDir, { recursive: true })
 
 const dbStore = {}
 class db {
@@ -85,6 +84,7 @@ class db {
 	writeStore() { 
 		let rawStoreData = JSON.stringify(this.store, null, 2)
 		if (this.encrypt) rawStoreData = this.encrypt(rawStoreData)
+		if (!fs.existsSync(this.storePath)) fs.mkdirSync(this.storePath, { recursive: true })
 		fs.writeFileSync(this.storePath, rawStoreData)
 	}
 }
