@@ -1,25 +1,18 @@
 const fs = require('fs')
 const crypto = require('crypto')
 
-const dbDir = `./db/`
-
-const dbStore = {}
 class db {
 	/**
 	 * Returns a new file backed object database.
-	 * @param {string} name Database name.
-	 * @param {string} storePath Path to store the database.
+	 * @param {string} file Database file.
 	 * @param {boolean} crypt True to encrypt database contents on disk.
 	 * 
 	 * @returns {Object} `{dbData}` Transparent object database.
 	 */
-	constructor(name, storePath=null, crypt=false) {
+	constructor(file, crypt=false) {
 		if (typeof name !== 'string') throw new Error('db name must be string!')
-		if (dbStore[name] != undefined) return dbStore[name].store
-		else dbStore[name] = this
-
-		if (storePath != null) this.storePath = storePath
-		else this.storePath = `${dbDir}${name}.json`
+		this.file = file
+		this.folder = file.split("/").slice(0, -1).join('/')
 		
 		if (crypt) {
 			const hash = crypto.createHash("sha256");
@@ -65,8 +58,8 @@ class db {
 	 * Loads databse from disk into `this.store`
 	 */
 	readStore() {
-		if (fs.existsSync(this.storePath)) {
-			let rawStoreData = fs.readFileSync(this.storePath)
+		if (fs.existsSync(this.file)) {
+			let rawStoreData = fs.readFileSync(this.file)
 			if (rawStoreData == '') this.store =  new Proxy({}, this.handler)
 			else if (this.decrypt && rawStoreData[0] == '{') { // Data was previously unencrypted, encrypt it
 				this.store = new Proxy(JSON.parse(rawStoreData), this.handler)
@@ -84,8 +77,8 @@ class db {
 	writeStore() { 
 		let rawStoreData = JSON.stringify(this.store, null, 2)
 		if (this.encrypt) rawStoreData = this.encrypt(rawStoreData)
-		if (!fs.existsSync(this.storePath)) fs.mkdirSync(this.storePath, { recursive: true })
-		fs.writeFileSync(this.storePath, rawStoreData)
+		if (!fs.existsSync(this.folder)) fs.mkdirSync(this.folder, { recursive: true })
+		fs.writeFileSync(this.file, rawStoreData)
 	}
 }
 
