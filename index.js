@@ -10,7 +10,7 @@ class db {
 	 * @returns {Object} `{dbData}` Transparent object database.
 	 */
 	constructor(file, crypt=false) {
-		if (typeof name !== 'string') throw new Error('db name must be string!')
+		if (typeof file !== 'string') throw new Error(`file must be string! Got: ${file}`)
 		this.file = file
 		this.folder = file.split("/").slice(0, -1).join('/')
 		
