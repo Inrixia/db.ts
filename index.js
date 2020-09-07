@@ -12,7 +12,7 @@ class db {
 	constructor(file, crypt=false) {
 		if (typeof file !== 'string') throw new Error(`file must be string! Got: ${file}`)
 		this.file = file
-		this.folder = file.split("/").slice(0, -1).join('/')
+		this.folder = file.replace(/\\/g, '/').split("/").slice(0, -1).join('/')
 		
 		if (crypt) {
 			const hash = crypto.createHash("sha256");
