@@ -77,7 +77,7 @@ class db {
 	writeStore() { 
 		let rawStoreData = JSON.stringify(this.store, null, 2)
 		if (this.encrypt) rawStoreData = this.encrypt(rawStoreData)
-		if (!fs.existsSync(this.folder)) fs.mkdirSync(this.folder, { recursive: true })
+		if (this.folder !== '' && !fs.existsSync(this.folder)) fs.mkdirSync(this.folder, { recursive: true })
 		fs.writeFileSync(this.file, rawStoreData)
 	}
 }
