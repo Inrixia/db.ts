@@ -45,25 +45,34 @@ class db {
 			},
 			set: (target, key, value) => {
 				target[key] = value
-				this.writeStore()
+				this._writeStore()
 				return true
 			}
 		}
-		this.readStore();
+		this._readStore();
 		
 		return this.store
 	}
 
 	/**
+	 * Loads a object into a db
+	 * @param {db} db db Instance
+	 * @param {object} object Object with data to store in db
+	 */
+	static load(db, object) {
+		for (const key in object) db[key] = object[key]
+	}
+
+	/**
 	 * Loads databse from disk into `this.store`
 	 */
-	readStore() {
+	_readStore() {
 		if (fs.existsSync(this.file)) {
 			let rawStoreData = fs.readFileSync(this.file)
 			if (rawStoreData == '') this.store =  new Proxy({}, this.handler)
 			else if (this.decrypt && rawStoreData[0] == '{') { // Data was previously unencrypted, encrypt it
 				this.store = new Proxy(JSON.parse(rawStoreData), this.handler)
-				this.writeStore()
+				this._writeStore()
 			} else {
 				if (this.decrypt) rawStoreData = this.decrypt(rawStoreData)
 				this.store = new Proxy(JSON.parse(rawStoreData), this.handler)
@@ -74,7 +83,7 @@ class db {
 	/**
 	 * Writes `this.store` to disk.
 	 */
-	writeStore() { 
+	_writeStore() { 
 		let rawStoreData = JSON.stringify(this.store, null, 2)
 		if (this.encrypt) rawStoreData = this.encrypt(rawStoreData)
 		if (this.folder !== '' && !fs.existsSync(this.folder)) fs.mkdirSync(this.folder, { recursive: true })
