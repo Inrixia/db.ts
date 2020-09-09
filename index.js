@@ -40,7 +40,7 @@ class db {
 
 		this.handler = {
 			get: (target, key, receiver) => {
-				if (typeof target[key] == 'object') return new Proxy(target[key], this.handler)
+				if (target[key] !== null && typeof target[key] === 'object') return new Proxy(target[key], this.handler)
 				else return Reflect.get(target, key, receiver);
 			},
 			set: (target, key, value) => {
@@ -69,8 +69,8 @@ class db {
 	_readStore() {
 		if (fs.existsSync(this.file)) {
 			let rawStoreData = fs.readFileSync(this.file)
-			if (rawStoreData == '') this.store =  new Proxy({}, this.handler)
-			else if (this.decrypt && rawStoreData[0] == '{') { // Data was previously unencrypted, encrypt it
+			if (rawStoreData === '') this.store =  new Proxy({}, this.handler)
+			else if (this.decrypt && rawStoreData[0] === '{') { // Data was previously unencrypted, encrypt it
 				this.store = new Proxy(JSON.parse(rawStoreData), this.handler)
 				this._writeStore()
 			} else {
