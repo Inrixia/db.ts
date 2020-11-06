@@ -84,7 +84,7 @@ class db {
 	 * Writes `this.store` to disk.
 	 */
 	_writeStore() { 
-		let rawStoreData = JSON.stringify(this.store, null, 2)
+		let rawStoreData = JSON.stringify(this.store)
 		if (this.encrypt) rawStoreData = this.encrypt(rawStoreData)
 		if (this.folder !== '' && !fs.existsSync(this.folder)) fs.mkdirSync(this.folder, { recursive: true })
 		fs.writeFileSync(this.file, rawStoreData)
