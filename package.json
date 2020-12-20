@@ -12,14 +12,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Inrixia/db.js.git"
+    "url": "git+https://github.com/Inrixia/db.ts.git"
   },
   "author": "Inrix",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Inrixia/db.js/issues"
+    "url": "https://github.com/Inrixia/db.ts/issues"
   },
-  "homepage": "https://github.com/Inrixia/db.js#readme",
+  "homepage": "https://github.com/Inrixia/db.ts#readme",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.10.0",
     "@typescript-eslint/parser": "^4.10.0",
