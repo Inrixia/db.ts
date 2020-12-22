@@ -6,9 +6,10 @@ type UnknownObject = { [key: string]: unknown }
 /**
  * Returns a new file backed object database.
  * @param {string} file Database file.
+ * @param template Template object used to initalize the db if it does not exist.
  * @param crypt True to encrypt database contents on disk.
  */
-export default function DB<T extends UnknownObject>(file: string, crypt=false): Partial<T> {
+export default function DB<T extends UnknownObject>(file: string, template: T, crypt=false): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
@@ -64,7 +65,7 @@ export default function DB<T extends UnknownObject>(file: string, crypt=false): 
 	
 	if (fs.existsSync(file)) {
 		let rawStoreData = fs.readFileSync(file).toString();
-		if (rawStoreData === "") return new Proxy({} as T, handler);
+		if (rawStoreData === "") throw new Error("Database file corrupt!");
 		else if (crypt) {
 			if (rawStoreData[0] === "{") { // Data was previously unencrypted, encrypt it
 				store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
@@ -74,7 +75,7 @@ export default function DB<T extends UnknownObject>(file: string, crypt=false): 
 				store = new Proxy(JSON.parse(rawStoreData), handler);
 			}
 		}
-	} else store = new Proxy({} as T, handler);
+	} else store = new Proxy(template, handler);
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	return store!;
 }

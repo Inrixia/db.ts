@@ -1,7 +1,8 @@
 import fs from "fs";
 import db from ".";
 
-const testDB = db<{ boolean: boolean, object: { string: string, number: number, array: number[] } }>("test.json", true);
+const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1,2,3] } };
+const testDB = db<typeof templateObject>("test.json", templateObject, true);
 
 const testObject = { 
 	boolean: true,
