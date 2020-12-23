@@ -7,17 +7,17 @@ type UnknownObject = { [key: string]: unknown }
  * Returns a new file backed object database.
  * @param {string} file Database file.
  * @param template Template object used to initalize the db if it does not exist.
- * @param crypt True to encrypt database contents on disk.
+ * @param crypt Optional key used to encrypt database contents on disk.
  */
-export default function DB<T extends UnknownObject>(file: string, template: T, crypt=false): T {
+export default function DB<T extends UnknownObject>(file: string, template: T, crypt?: string): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
 	let decrypt: (s: string) => string;
 	let encrypt: (s: string) => string;
-	if (crypt) {
+	if (crypt !== undefined) {
 		const hash = crypto.createHash("sha256");
-		// hash.update(crypt);
+		hash.update(crypt);
 		const key = hash.digest().slice(0, 32);
 		decrypt = (string: string) => {
 			string = string.toString();
@@ -44,7 +44,7 @@ export default function DB<T extends UnknownObject>(file: string, template: T, c
 	 */
 	const _writeStore = (store: T): T => { 
 		let rawStoreData = JSON.stringify(store);
-		if (crypt) rawStoreData = encrypt(rawStoreData);
+		if (crypt !== undefined) rawStoreData = encrypt(rawStoreData);
 		if (folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		fs.writeFileSync(file, rawStoreData);
 		return store;
@@ -66,7 +66,7 @@ export default function DB<T extends UnknownObject>(file: string, template: T, c
 	if (fs.existsSync(file)) {
 		let rawStoreData = fs.readFileSync(file).toString();
 		if (rawStoreData === "") throw new Error("Database file corrupt!");
-		else if (crypt) {
+		else if (crypt !== undefined) {
 			if (rawStoreData[0] === "{") { // Data was previously unencrypted, encrypt it
 				store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
 			} else {

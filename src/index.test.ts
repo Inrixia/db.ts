@@ -2,7 +2,7 @@ import fs from "fs";
 import db from ".";
 
 const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1,2,3] } };
-const testDB = db<typeof templateObject>("test.json", templateObject, true);
+const testDB = db<typeof templateObject>("test.json", templateObject, "SupahSecretKey");
 
 const testObject = { 
 	boolean: true,
