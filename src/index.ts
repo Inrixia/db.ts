@@ -48,7 +48,7 @@ export default function db<T extends UnknownObject>(file: string, template: T, o
 	 * Writes `this.store` to disk.
 	 */
 	const _writeStore = (store: T): T => { 
-		let rawStoreData = JSON.stringify(store, null, pretty?" ":undefined);
+		let rawStoreData = JSON.stringify(store, null, pretty?"	":undefined);
 		if (cryptKey !== undefined) rawStoreData = encrypt(rawStoreData);
 		if (folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		fs.writeFileSync(file, rawStoreData);
