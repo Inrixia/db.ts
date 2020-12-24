@@ -4,7 +4,7 @@ import db from ".";
 const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1,2,3] } };
 
 const testDB = db<typeof templateObject>("test.json", templateObject);
-const testDBencrypte = db<typeof templateObject>("test.json", templateObject, "SupahSecretKey");
+const testDBencrypte = db<typeof templateObject>("test.json", templateObject, { cryptKey: "SupahSecretKey" });
 
 const testObject = { 
 	boolean: true,
@@ -38,7 +38,7 @@ test("external access", () => {
 	expect(testDBTwo).toEqual(testObject);
 });
 test("external access [encrypted]", () => {
-	const testDBTwoEncrypted = db<typeof templateObject>("test.json", templateObject, "SupahSecretKey");
+	const testDBTwoEncrypted = db<typeof templateObject>("test.json", templateObject, { cryptKey: "SupahSecretKey" });
 	expect(testDBTwoEncrypted).toEqual(testObject);
 });
 
