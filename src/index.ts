@@ -16,7 +16,7 @@ export default function db<T extends UnknownObject>(file: string, template: T, o
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
 	const cryptKey = options.cryptKey;
-	const pretty = (options.pretty === true && options.cryptKey !== undefined);
+	const pretty = (options.pretty === true && options.cryptKey === undefined);
 
 	let decrypt: (s: string) => string;
 	let encrypt: (s: string) => string;
