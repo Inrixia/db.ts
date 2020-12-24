@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 type UnknownObject = { [key: string]: unknown }
 
-type dbOptions = { cryptKey?: string, pretty?: boolean }
+type dbOptions = { cryptKey?: string, pretty?: boolean, forceCreate?: boolean }
 
 /**
  * Returns a new file backed object database.
@@ -77,8 +77,11 @@ export default function db<T extends UnknownObject>(file: string, template: T, o
 			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 			else rawStoreData = decrypt!(rawStoreData);
 		}
-		store = new Proxy(JSON.parse(rawStoreData), handler); 
-	} else store = new Proxy(template, handler);
+		store = new Proxy(JSON.parse(rawStoreData), handler);
+	} else {
+		store = new Proxy({ ...template }, handler);
+		if (options.forceCreate === true) _writeStore(template);
+	}
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	return store!;
 }
