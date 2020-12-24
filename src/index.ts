@@ -67,14 +67,12 @@ export default function DB<T extends UnknownObject>(file: string, template: T, c
 		let rawStoreData = fs.readFileSync(file).toString();
 		if (rawStoreData === "") throw new Error("Database file corrupt!");
 		else if (crypt !== undefined) {
-			if (rawStoreData[0] === "{") { // Data was previously unencrypted, encrypt it
-				store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
-			} else {
-				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				rawStoreData = decrypt!(rawStoreData);
-				store = new Proxy(JSON.parse(rawStoreData), handler);
-			}
+			// Data was previously unencrypted, encrypt it
+			if (rawStoreData[0] === "{") store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			else rawStoreData = decrypt!(rawStoreData);
 		}
+		store = new Proxy(JSON.parse(rawStoreData), handler); 
 	} else store = new Proxy(template, handler);
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	return store!;
