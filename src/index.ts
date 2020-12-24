@@ -3,21 +3,26 @@ import crypto from "crypto";
 
 type UnknownObject = { [key: string]: unknown }
 
+type dbOptions = { cryptKey?: string, pretty?: boolean }
+
 /**
  * Returns a new file backed object database.
  * @param {string} file Database file.
  * @param template Template object used to initalize the db if it does not exist.
- * @param crypt Optional key used to encrypt database contents on disk.
+ * @param cryptKey Optional key used to encrypt database contents on disk.
  */
-export default function DB<T extends UnknownObject>(file: string, template: T, crypt?: string): T {
+export default function db<T extends UnknownObject>(file: string, template: T, options: dbOptions = {}): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
+	const cryptKey = options.cryptKey;
+	const pretty = (options.pretty === true && options.cryptKey !== undefined);
+
 	let decrypt: (s: string) => string;
 	let encrypt: (s: string) => string;
-	if (crypt !== undefined) {
+	if (cryptKey !== undefined) {
 		const hash = crypto.createHash("sha256");
-		hash.update(crypt);
+		hash.update(cryptKey);
 		const key = hash.digest().slice(0, 32);
 		decrypt = (string: string) => {
 			string = string.toString();
@@ -43,8 +48,8 @@ export default function DB<T extends UnknownObject>(file: string, template: T, c
 	 * Writes `this.store` to disk.
 	 */
 	const _writeStore = (store: T): T => { 
-		let rawStoreData = JSON.stringify(store);
-		if (crypt !== undefined) rawStoreData = encrypt(rawStoreData);
+		let rawStoreData = JSON.stringify(store, null, pretty?" ":undefined);
+		if (cryptKey !== undefined) rawStoreData = encrypt(rawStoreData);
 		if (folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		fs.writeFileSync(file, rawStoreData);
 		return store;
@@ -66,7 +71,7 @@ export default function DB<T extends UnknownObject>(file: string, template: T, c
 	if (fs.existsSync(file)) {
 		let rawStoreData = fs.readFileSync(file).toString();
 		if (rawStoreData === "") throw new Error("Database file corrupt!");
-		else if (crypt !== undefined) {
+		else if (cryptKey !== undefined) {
 			// Data was previously unencrypted, encrypt it
 			if (rawStoreData[0] === "{") store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
 			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
