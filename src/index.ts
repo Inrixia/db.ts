@@ -70,7 +70,7 @@ export default function db<T extends UnknownObject>(file: string, template: T, o
 	
 	if (fs.existsSync(file)) {
 		let rawStoreData = fs.readFileSync(file).toString();
-		if (rawStoreData === "") throw new Error("Database file corrupt!");
+		if (rawStoreData === "") throw new Error(`Database file ${file} is empty!`);
 		else if (cryptKey !== undefined) {
 			// Data was previously unencrypted, encrypt it
 			if (rawStoreData[0] === "{") store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
