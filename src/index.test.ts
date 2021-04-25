@@ -3,8 +3,8 @@ import db from ".";
 
 const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1,2,3] } };
 
-const testDB = db<typeof templateObject>("test.json", templateObject);
-const testDBencrypted = db<typeof templateObject>("testCrypt.json", templateObject, { cryptKey: "SupahSecretKey" });
+const testDB = db<typeof templateObject>("test.json", { template: templateObject });
+const testDBencrypted = db<typeof templateObject>("testCrypt.json", { template: templateObject, cryptKey: "SupahSecretKey" });
 
 const testObject = { 
 	boolean: true,
@@ -40,16 +40,16 @@ test("entire db", () => expect(testDB).toEqual(testObject));
 test("entire db [encrypted]", () => expect(testDBencrypted).toEqual(testObject));
 
 test("external access", () => {
-	const testDBTwo = db<typeof templateObject>("test.json", templateObject);
+	const testDBTwo = db<typeof templateObject>("test.json", { template: templateObject });
 	expect(testDBTwo).toEqual(testObject);
 });
 test("external access [encrypted]", () => {
-	const testDBTwoEncrypted = db<typeof templateObject>("testCrypt.json", templateObject, { cryptKey: "SupahSecretKey" });
+	const testDBTwoEncrypted = db<typeof templateObject>("testCrypt.json", { template: templateObject, cryptKey: "SupahSecretKey" });
 	expect(testDBTwoEncrypted).toEqual(testObject);
 });
 
 test("forceCreate", () => {
-	db<typeof templateObject>("testCreate.json", templateObject, { forceCreate: true });
+	db<typeof templateObject>("testCreate.json", { template: templateObject, forceCreate: true });
 	expect(JSON.parse(fs.readFileSync("testCreate.json").toString())).toEqual(templateObject);
 });
 

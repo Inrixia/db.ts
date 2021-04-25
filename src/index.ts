@@ -1,9 +1,9 @@
 import fs from "fs";
 import crypto from "crypto";
 
-type UnknownObject = { [key: string]: unknown }
+type UnknownObject = Record<string, unknown>
 
-type dbOptions = { cryptKey?: string, pretty?: boolean, forceCreate?: boolean }
+type dbOptions<T> = { template?: T, cryptKey?: string, pretty?: boolean, forceCreate?: boolean }
 
 /**
  * Returns a new file backed object database.
@@ -11,12 +11,14 @@ type dbOptions = { cryptKey?: string, pretty?: boolean, forceCreate?: boolean }
  * @param template Template object used to initalize the db if it does not exist.
  * @param cryptKey Optional key used to encrypt database contents on disk.
  */
-export default function db<T extends UnknownObject>(file: string, template: T, options: dbOptions = {}): T {
+export default function db<T extends UnknownObject>(file: string, options: dbOptions<T> = {}): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
 	const cryptKey = options.cryptKey;
 	const pretty = (options.pretty === true && options.cryptKey === undefined);
+
+	const defaultDB = options.template || {} as T;
 
 	let decrypt: (s: string) => string;
 	let encrypt: (s: string) => string;
@@ -79,8 +81,8 @@ export default function db<T extends UnknownObject>(file: string, template: T, o
 		}
 		store = new Proxy(JSON.parse(rawStoreData), handler);
 	} else {
-		store = new Proxy({ ...template }, handler);
-		if (options.forceCreate === true) _writeStore(template);
+		store = new Proxy({ ...defaultDB }, handler);
+		if (options.forceCreate === true) _writeStore(defaultDB);
 	}
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	return store!;
