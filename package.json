@@ -1,6 +1,6 @@
 {
   "name": "@inrixia/db",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Persisent object storage",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
