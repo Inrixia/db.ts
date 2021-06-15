@@ -17,9 +17,6 @@ const testObject = {
 
 testDB.boolean = testObject.boolean;
 testDB.object = { string: testObject.object.string, number: testObject.object.number, array: testObject.object.array };
-console.log("XXXX", templateObject, "INIT");
-
-
 
 testDBencrypted.boolean = testObject.boolean;
 testDBencrypted.object = { string: testObject.object.string, number: testObject.object.number, array: testObject.object.array };
