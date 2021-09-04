@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from "fs";
 import crypto from "crypto";
 
-type UnknownObject = Record<string, unknown>
+type UnknownObject = Record<string, unknown>;
 
-type dbOptions<T> = { template?: T, cryptKey?: string, pretty?: boolean, forceCreate?: boolean }
+type dbOptions<T> = { template?: T; cryptKey?: string; pretty?: true; forceCreate?: true; updateOnExternalChanges?: true };
 
 /**
  * Returns a new file backed object database.
@@ -16,9 +17,13 @@ export default function db<T extends UnknownObject>(file: string, options: dbOpt
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
 	const cryptKey = options.cryptKey;
-	const pretty = (options.pretty === true && options.cryptKey === undefined);
+	const pretty = options.pretty === true && options.cryptKey === undefined;
 
-	const defaultDB = options.template || {} as T;
+	const defaultDB = options.template || ({} as T);
+
+	let fileExists = fs.existsSync(file);
+
+	let stat: fs.Stats;
 
 	let decrypt: (s: string) => string;
 	let encrypt: (s: string) => string;
@@ -47,14 +52,74 @@ export default function db<T extends UnknownObject>(file: string, options: dbOpt
 	}
 
 	/**
-	 * Writes `this.store` to disk.
+	 * Writes store to disk.
 	 */
-	const _writeStore = (store: T): T => { 
-		let rawStoreData = JSON.stringify(store, null, pretty?"	":undefined);
+	let disableWrites = false;
+	const _writeStore = (store: T) => {
+		if (disableWrites === true) return;
+		let rawStoreData = JSON.stringify(store, null, pretty ? "	" : undefined);
 		if (cryptKey !== undefined) rawStoreData = encrypt(rawStoreData);
-		if (folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+		if (!fileExists && folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		fs.writeFileSync(file, rawStoreData);
+		if (options.updateOnExternalChanges === true) stat = fs.statSync(file);
 		return store;
+	};
+
+	/**
+	 * Reads store from disk.
+	 * @returns Object of expected type T containing data from `file`
+	 */
+	const _readStore = (): T => {
+		let rawStoreData = fs.readFileSync(file).toString();
+		if (rawStoreData === "") throw new Error(`Database file ${file} is empty!`);
+		else if (cryptKey !== undefined) {
+			// Data was previously unencrypted, encrypt it
+			if (rawStoreData[0] === "{") _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			else rawStoreData = decrypt!(rawStoreData);
+		}
+		return JSON.parse(rawStoreData);
+	};
+
+	/**
+	 * Recursively update `_old` to mirror `_new` ensuring that sub references to store's children are maintained.
+	 * @param _new New object to apply to old object.
+	 * @param _old Old object to be updated.
+	 */
+	const _recursiveUpdate = (_new: any, _old: any) => {
+		disableWrites = true;
+		// Update/Set all values from new to old.
+		_rSet(_new, _old);
+		// Removoe any values from old that are not in new.
+		_rClean(_new, _old);
+		disableWrites = false;
+	};
+	const _rSet = (_new: any, _old: any) => {
+		for (const key in _new) {
+			if (typeof _new[key] === "object") {
+				if (_old[key] === undefined) _old[key] = _new[key];
+				else _rSet(_new[key], _old[key]);
+			} else _old[key] = _new[key];
+		}
+	};
+	const _rClean = (_new: any, _old: any) => {
+		for (const key in _old) {
+			if (_new[key] === undefined) delete _old[key];
+			else if (typeof _old[key] === "object") _rClean(_new[key], _old[key]);
+		}
+	};
+
+	const _watchFile = () => {
+		stat = fs.statSync(file);
+		let watchTimeout = setTimeout(() => null, 0);
+		fs.watch(file, () => {
+			// Debounce fs.watch to only emit one event per 5ms
+			clearTimeout(watchTimeout);
+			watchTimeout = setTimeout(() => {
+				// If the file modified is not the same as the one held in memory, reload it
+				if (stat.mtimeMs !== fs.statSync(file).mtimeMs) _recursiveUpdate(_readStore(), store);
+			}, 5);
+		});
 	};
 
 	let store: T;
@@ -67,23 +132,19 @@ export default function db<T extends UnknownObject>(file: string, options: dbOpt
 			target[key] = value;
 			_writeStore(store);
 			return true;
-		}
+		},
 	};
-	
-	if (fs.existsSync(file)) {
-		let rawStoreData = fs.readFileSync(file).toString();
-		if (rawStoreData === "") throw new Error(`Database file ${file} is empty!`);
-		else if (cryptKey !== undefined) {
-			// Data was previously unencrypted, encrypt it
-			if (rawStoreData[0] === "{") store = _writeStore(new Proxy(JSON.parse(rawStoreData), handler));
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			else rawStoreData = decrypt!(rawStoreData);
-		}
-		store = new Proxy(JSON.parse(rawStoreData), handler);
+
+	if (fileExists) {
+		store = new Proxy(_readStore(), handler);
+		if (options.updateOnExternalChanges === true) _watchFile();
 	} else {
 		store = new Proxy({ ...defaultDB }, handler);
-		if (options.forceCreate === true) _writeStore(defaultDB);
+		if (options.forceCreate === true) {
+			_writeStore(defaultDB);
+			if (options.updateOnExternalChanges === true) _watchFile();
+			fileExists = true;
+		}
 	}
-	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-	return store!;
+	return store;
 }
