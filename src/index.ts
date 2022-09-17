@@ -1,27 +1,31 @@
 import fs from "fs";
 import crypto from "crypto";
 
-type JSONValue = { [x: string]: JSONValue } | JSONValue[] | string | number | boolean;
+export type JSONSafeValue = string | number | boolean | { [key: string]: JSONSafeValue } | JSONSafeValue[] | null | undefined;
+export type DBContent = { [x: string]: JSONSafeValue };
 
 export type DBOptions<T> = { template?: T; cryptKey?: string; pretty?: true; forceCreate?: true; updateOnExternalChanges?: true };
 
 /**
  * Returns a new file backed object database.
- * @param {string} file Database file.
- * @param template Template object used to initalize the db if it does not exist.
- * @param cryptKey Optional key used to encrypt database contents on disk.
+ * @param file Database file.
+ * @param options.template Template object to initialize with.
+ * @param options.cryptKey Key to use for encryption.
+ * @param options.pretty Pretty print the JSON file.
+ * @param options.forceCreate Write out to file if it doesn't exist.
+ * @param options.updateOnExternalChanges Asynchronously update the database object if the file is changed externally.
  */
-export default function db<T extends JSONValue>(file: string, options: DBOptions<T> = {}): T {
+export default function db<T extends DBContent>(file: string, options: DBOptions<T> = {}): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
 	const cryptKey = options.cryptKey;
 	const pretty = options.pretty === true && options.cryptKey === undefined;
 
-	const defaultDB = options.template || ({} as T);
+	const defaultDB: T = <T>(options.template || {});
 
 	let fileExists = fs.existsSync(file);
-
+	let store: T;
 	let stat: fs.Stats;
 
 	let decrypt: (s: string) => string;
@@ -60,8 +64,6 @@ export default function db<T extends JSONValue>(file: string, options: DBOptions
 		if (cryptKey !== undefined) rawStoreData = encrypt(rawStoreData);
 		if (!fileExists && folder !== "" && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		fs.writeFileSync(file, rawStoreData);
-		if (options.updateOnExternalChanges === true) stat = fs.statSync(file);
-		return store;
 	};
 
 	/**
@@ -82,29 +84,31 @@ export default function db<T extends JSONValue>(file: string, options: DBOptions
 
 	/**
 	 * Recursively update `_old` to mirror `_new` ensuring that sub references to store's children are maintained.
-	 * @param _new New object to apply to old object.
+	 * @param _new New object.
 	 * @param _old Old object to be updated.
 	 */
-	const _recursiveUpdate = (_new: any, _old: any) => {
+	const _recursiveUpdate = (_new: T, _old: T) => {
 		disableWrites = true;
-		// Update/Set all values from new to old.
 		_rSet(_new, _old);
-		// Removoe any values from old that are not in new.
 		_rClean(_new, _old);
 		disableWrites = false;
 	};
-	const _rSet = (_new: any, _old: any) => {
+	/**
+	 * Update/Set all values from new to old.
+	 */
+	const _rSet = (_new: DBContent, _old: DBContent) => {
 		for (const key in _new) {
-			if (typeof _new[key] === "object") {
-				if (_old[key] === undefined) _old[key] = _new[key];
-				else _rSet(_new[key], _old[key]);
-			} else _old[key] = _new[key];
+			if (typeof _new[key] === "object" && typeof _old[key] === "object") _rSet(<DBContent>_new[key], <DBContent>_old[key]);
+			else _old[key] = _new[key];
 		}
 	};
-	const _rClean = (_new: any, _old: any) => {
+	/**
+	 * Remove any values from old that are not in new.
+	 */
+	const _rClean = (_new: DBContent, _old: DBContent) => {
 		for (const key in _old) {
-			if (_new[key] === undefined) delete _old[key];
-			else if (typeof _old[key] === "object") _rClean(_new[key], _old[key]);
+			if (typeof _new[key] === "object" && typeof _old[key] === "object") _rClean(<DBContent>_new[key], <DBContent>_old[key]);
+			else if (_new[key] === undefined) delete _old[key];
 		}
 	};
 
@@ -121,29 +125,26 @@ export default function db<T extends JSONValue>(file: string, options: DBOptions
 		});
 	};
 
-	let store: T;
 	const handler: ProxyHandler<T> = {
 		get: (target, key: string, receiver) => {
 			if (target[key] !== null && typeof target[key] === "object") return new Proxy(target[key] as T, handler);
 			else return Reflect.get(target, key, receiver);
 		},
-		set: (target: UnknownObject, key: string, value) => {
+		set: (target: DBContent, key: string, value) => {
 			target[key] = value;
 			_writeStore(store);
 			return true;
 		},
 	};
 
-	if (fileExists) {
-		store = new Proxy(_readStore(), handler);
-		if (options.updateOnExternalChanges === true) _watchFile();
-	} else {
+	if (fileExists) store = new Proxy(_readStore(), handler);
+	else {
 		store = new Proxy({ ...defaultDB }, handler);
-		if (options.forceCreate === true) {
+		if (options.forceCreate === true || options.updateOnExternalChanges === true) {
 			_writeStore(defaultDB);
-			if (options.updateOnExternalChanges === true) _watchFile();
 			fileExists = true;
 		}
 	}
+	if (options.updateOnExternalChanges === true) _watchFile();
 	return store;
 }
