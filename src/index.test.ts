@@ -1,18 +1,20 @@
+import { test, expect, afterAll } from "vitest";
+
 import fs from "fs";
 import db from ".";
 
-const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1,2,3] } };
+const templateObject = { boolean: false, object: { string: "123", number: 123, array: [1, 2, 3] } };
 
 const testDB = db<typeof templateObject>("test.json", { template: templateObject });
 const testDBencrypted = db<typeof templateObject>("testCrypt.json", { template: templateObject, cryptKey: "SupahSecretKey" });
 
-const testObject = { 
+const testObject = {
 	boolean: true,
 	object: {
 		string: "hello",
 		number: Math.random(),
-		array: [1,2,3]
-	}
+		array: [1, 2, 3],
+	},
 };
 
 testDB.boolean = testObject.boolean;

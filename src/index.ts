@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from "fs";
 import crypto from "crypto";
 
-type UnknownObject = Record<string, unknown>;
+type JSONValue = { [x: string]: JSONValue } | JSONValue[] | string | number | boolean;
 
-type dbOptions<T> = { template?: T; cryptKey?: string; pretty?: true; forceCreate?: true; updateOnExternalChanges?: true };
+export type DBOptions<T> = { template?: T; cryptKey?: string; pretty?: true; forceCreate?: true; updateOnExternalChanges?: true };
 
 /**
  * Returns a new file backed object database.
@@ -12,7 +11,7 @@ type dbOptions<T> = { template?: T; cryptKey?: string; pretty?: true; forceCreat
  * @param template Template object used to initalize the db if it does not exist.
  * @param cryptKey Optional key used to encrypt database contents on disk.
  */
-export default function db<T extends UnknownObject>(file: string, options: dbOptions<T> = {}): T {
+export default function db<T extends JSONValue>(file: string, options: DBOptions<T> = {}): T {
 	if (typeof file !== "string") throw new Error(`file must be string! Got: ${file}`);
 	const folder: string = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 
