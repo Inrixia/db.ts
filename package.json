@@ -10,7 +10,7 @@
 		}
 	},
 	"scripts": {
-		"postinstall": "tsc",
+		"prepare": "tsc",
 		"test": "vitest"
 	},
 	"repository": {
